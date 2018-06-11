@@ -23,7 +23,7 @@
 #include "WS2812_Definitions.h"
 
 #define PIN 4
-#define LED_COUNT 66
+#define LED_COUNT 60
 
 #include <SPI.h>
 #include "mcp_can.h"
@@ -61,8 +61,6 @@ START_INIT:
   /*
    * set mask, set both the mask to 0x3ff
    */
-  CAN.init_Mask(0, 0, 0xFF);                         // there are 2 mask in mcp2515, you need to set both of them
-  CAN.init_Mask(1, 0, 0xFF);
 
   /*
    * set filter, we can receive id from 0x04 ~ 0x09
@@ -83,26 +81,29 @@ float flash_rpm = 11500;
 int flash_speed = 50;
 int color = 0;
 float rpm_led = max_rpm/LED_COUNT;
+float cur_color;
 
-uint32_t cur_led_color = GREEN;
+uint32_t cur_led_color;
 
 void loop(){
 
   unsigned char len = 0;
   unsigned char buf[8];
-
+  //Serial.println("looping like no tmr");
   if(CAN_MSGAVAIL == CAN.checkReceive())            // check if data coming
   {
       CAN.readMsgBuf(&len, buf);    // read data,  len: data length, buf: data buf
 
       unsigned long canId = CAN.getCanId();
-      
+      //Serial.println("can check ok");
       if(canId == 1520){
         set_color(buf[6] << 8 | buf[7]);
+        Serial.println(buf[6] << 8 | buf[7]);
+        Serial.println(buf[6] << 8 | buf[7]);
       }
   }
-
-  if (cur_rpm > flash_rpm){
+  
+  if (cur_rpm >= flash_rpm){
     
     clearLEDs();
     leds.show();
@@ -113,24 +114,23 @@ void loop(){
 
 }
 
-void set_color(int rpm){
+void set_color(float rpm){
   
   cur_rpm = rpm;  
   
   clearLEDs();
-  cur_led_color = HSBtoRGB(int(120*(1.0-float(cur_rpm/max_rpm))),1,1);
+  cur_color = 120.0*(1.0-float(cur_rpm/max_rpm));
+  if (cur_color>120) cur_color = 120.0;
+  if (cur_color<0) cur_color = 0.0;;
+  cur_led_color = HSBtoRGB(cur_color,1,1);
   
-  //Serial.println(120*(float(cur_rpm/max_rpm)));
-  
-  for(int i=LED_COUNT; i>0; i--){
-    if ( cur_rpm >= (LED_COUNT-i)*rpm_led+1){
+  for(int i=LED_COUNT; i>=0; i--){
+    if ( cur_rpm >= (LED_COUNT-i)*rpm_led){
       
       leds.setPixelColor(i, cur_led_color);
       leds.setBrightness(255);
     }
-    
   }
-
   leds.show();
 }
 
