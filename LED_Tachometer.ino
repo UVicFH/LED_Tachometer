@@ -66,12 +66,12 @@ START_INIT:
    * set filter, we can receive id from 0x04 ~ 0x09
    */
   CAN.init_Filt(0, 0, 1520);                          // there are 6 filter in mcp2515
-  CAN.init_Filt(1, 0, 1520);                          // there are 6 filter in mcp2515
+  CAN.init_Filt(1, 0, 257);                          // there are 6 filter in mcp2515
 
   CAN.init_Filt(2, 0, 1520);                          // there are 6 filter in mcp2515
-  CAN.init_Filt(3, 0, 1520);                          // there are 6 filter in mcp2515
+  CAN.init_Filt(3, 0, 257);                          // there are 6 filter in mcp2515
   CAN.init_Filt(4, 0, 1520);                          // there are 6 filter in mcp2515
-  CAN.init_Filt(5, 0, 1520);                          // there are 6 filter in mcp2515
+  CAN.init_Filt(5, 0, 257);                          // there are 6 filter in mcp2515
   
 }
 
@@ -82,6 +82,7 @@ int flash_speed = 50;
 int color = 0;
 float rpm_led = max_rpm/LED_COUNT;
 float cur_color;
+float charge;
 
 uint32_t cur_led_color;
 
@@ -97,9 +98,19 @@ void loop(){
       unsigned long canId = CAN.getCanId();
       //Serial.println("can check ok");
       if(canId == 1520){
+        cur_rpm = buf[6] << 8 | buf[7]; 
+        if(cur_rpm > 400){
         set_color(buf[6] << 8 | buf[7]);
+        }
         Serial.println(buf[6] << 8 | buf[7]);
         Serial.println(buf[6] << 8 | buf[7]);
+      }
+
+      else if(canId == 257){
+        charge =buf[5];
+        if(cur_rpm < 400){
+          set_color((flash_rpm-10)*(((int)charge)/100.0));
+        }
       }
   }
   
@@ -111,21 +122,18 @@ void loop(){
     set_color(buf[6] << 8 | buf[7]);
     delay(flash_speed);
  }
-
+ 
 }
 
 void set_color(float rpm){
-  
-  cur_rpm = rpm;  
-  
   clearLEDs();
-  cur_color = 120.0*(1.0-float(cur_rpm/max_rpm));
+  cur_color = 120.0*(1.0-float(rpm/max_rpm));
   if (cur_color>120) cur_color = 120.0;
   if (cur_color<0) cur_color = 0.0;;
   cur_led_color = HSBtoRGB(cur_color,1,1);
   
   for(int i=LED_COUNT; i>=0; i--){
-    if ( cur_rpm >= (LED_COUNT-i)*rpm_led){
+    if ( rpm >= (LED_COUNT-i)*rpm_led){
       
       leds.setPixelColor(i, cur_led_color);
       leds.setBrightness(255);
