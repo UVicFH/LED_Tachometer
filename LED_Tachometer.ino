@@ -22,7 +22,7 @@
 #include "Adafruit_NeoPixel.h"
 #include "WS2812_Definitions.h"
 
-#define PIN 4
+#define PIN 5
 #define LED_COUNT 60
 
 #include <SPI.h>
